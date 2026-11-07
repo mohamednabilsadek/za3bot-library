@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/banner.svg" alt="Za3bot Library - your PDFs on a 3D shelf" width="100%">
+<img src="doc/banner.svg" alt="Za3bot Library - your PDFs on a 3D shelf" width="100%">
 
 <br>
 
@@ -28,7 +28,7 @@ Point it at a folder, and you get a dark, gaming-console-style library you can d
 No account. No upload. No database to set up. Your books never leave your machine.
 
 <div align="center">
-<img src="docs/screenshots/library.png" alt="Library view: folders as coverflow shelves" width="92%">
+<img src="doc/screenshots/library.png" alt="Library view: folders as coverflow shelves" width="92%">
 </div>
 
 ## Features
@@ -62,11 +62,11 @@ No account. No upload. No database to set up. Your books never leave your machin
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/reader.png" alt="Two-page reader with page previews"><br><sub><b>Two-page reader</b> with page previews on the left</sub></td>
-    <td width="50%"><img src="docs/screenshots/notes.png" alt="Notes panel and bookmark"><br><sub><b>Notes &amp; bookmarks</b> saved per page</sub></td>
+    <td width="50%"><img src="doc/screenshots/reader.png" alt="Two-page reader with page previews"><br><sub><b>Two-page reader</b> with page previews on the left</sub></td>
+    <td width="50%"><img src="doc/screenshots/notes.png" alt="Notes panel and bookmark"><br><sub><b>Notes &amp; bookmarks</b> saved per page</sub></td>
   </tr>
   <tr>
-    <td colspan="2" align="center"><img src="docs/screenshots/zoom.png" alt="Zoomed page" width="50%"><br><sub><b>Zoom</b> re-renders pages sharply instead of just stretching them</sub></td>
+    <td colspan="2" align="center"><img src="doc/screenshots/zoom.png" alt="Zoomed page" width="50%"><br><sub><b>Zoom</b> re-renders pages sharply instead of just stretching them</sub></td>
   </tr>
 </table>
 
@@ -262,7 +262,7 @@ za3bot-library/
 ├─ server.js          Express server: scanning, covers, PDFs, bookmarks & notes API
 ├─ index.html         The entire front end (UI, shelves, reader)
 ├─ package.json
-├─ docs/              Banner and screenshots used by this README
+├─ doc/              Banner and screenshots used by this README
 └─ LICENSE
 ```
 
