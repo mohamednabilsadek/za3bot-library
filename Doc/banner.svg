@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="340" viewBox="0 0 1280 340" role="img" aria-label="Za3bot Library - your PDFs on a 3D shelf">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="0%" r="95%">
+      <stop offset="0" stop-color="#12361f"/>
+      <stop offset="0.55" stop-color="#0c1511"/>
+      <stop offset="1" stop-color="#0a0c0f"/>
+    </radialGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#ffffff" stroke-opacity="0.045"/>
+    </pattern>
+    <linearGradient id="cA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c2531f"/><stop offset="1" stop-color="#5a230b"/></linearGradient>
+    <linearGradient id="cB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9a21b"/><stop offset="1" stop-color="#6e4d06"/></linearGradient>
+    <linearGradient id="cC" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7a4ee0"/><stop offset="1" stop-color="#2d1873"/></linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="1" y2="0.6"><stop offset="0" stop-color="#fff" stop-opacity="0.22"/><stop offset="0.35" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.3"/></linearGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.16"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <radialGradient id="orb" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#8affc0"/><stop offset="0.45" stop-color="#2bff88"/><stop offset="1" stop-color="#0c7a42"/></radialGradient>
+  </defs>
+
+  <rect width="1280" height="340" fill="url(#bg)"/>
+  <rect width="1280" height="340" fill="url(#grid)"/>
+
+  <!-- coverflow -->
+  <g>
+    <!-- left cover -->
+    <polygon points="835,94 940,114 940,246 835,266" fill="url(#cA)"/>
+    <polygon points="835,94 940,114 940,246 835,266" fill="url(#gloss)"/>
+    <polygon points="852,132 904,141 904,148 852,139" fill="#ffffff" fill-opacity="0.85"/>
+    <polygon points="852,152 890,159 890,164 852,157" fill="#ffffff" fill-opacity="0.5"/>
+    <!-- right cover -->
+    <polygon points="1110,114 1215,94 1215,266 1110,246" fill="url(#cC)"/>
+    <polygon points="1110,114 1215,94 1215,266 1110,246" fill="url(#gloss)"/>
+    <polygon points="1128,141 1180,132 1180,139 1128,148" fill="#ffffff" fill-opacity="0.85"/>
+    <polygon points="1128,159 1166,152 1166,157 1128,164" fill="#ffffff" fill-opacity="0.5"/>
+    <!-- centre cover (focused) -->
+    <g filter="url(#glow)">
+      <rect x="950" y="58" width="150" height="214" rx="7" fill="none" stroke="#2bff88" stroke-width="3"/>
+    </g>
+    <rect x="950" y="58" width="150" height="214" rx="7" fill="url(#cB)"/>
+    <rect x="950" y="58" width="150" height="214" rx="7" fill="url(#gloss)"/>
+    <polygon points="1060,104 1100,127 1100,173 1060,196 1020,173 1020,127" fill="#ffffff" fill-opacity="0.14"/>
+    <polygon points="1060,120 1086,135 1086,165 1060,180 1034,165 1034,135" fill="#ffffff" fill-opacity="0.18"/>
+    <rect x="968" y="84" width="44" height="5" rx="2" fill="#ffffff" fill-opacity="0.9"/>
+    <rect x="968" y="102" width="70" height="9" rx="3" fill="#ffffff"/>
+    <rect x="968" y="118" width="52" height="9" rx="3" fill="#ffffff"/>
+    <rect x="968" y="240" width="80" height="5" rx="2" fill="#ffffff" fill-opacity="0.55"/>
+    <!-- reflection -->
+    <rect x="950" y="278" width="150" height="40" fill="url(#fade)" opacity="0.7"/>
+  </g>
+
+  <!-- brand -->
+  <circle cx="86" cy="84" r="17" fill="url(#orb)" filter="url(#glow)"/>
+  <text x="120" y="92" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="6" fill="#7b8794">OPEN SOURCE  -  SELF HOSTED</text>
+  <text x="68" y="172" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="78" font-weight="800" letter-spacing="7" fill="#e8edf2">ZA3BOT</text>
+  <text x="68" y="248" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="78" font-weight="300" letter-spacing="14" fill="#2bff88">LIBRARY</text>
+  <text x="70" y="294" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="22" fill="#9aa6b2">Your PDFs, on a 3D shelf. Folders become shelves. Pages really turn.</text>
+</svg>
