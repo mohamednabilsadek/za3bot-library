@@ -1,0 +1,36 @@
+{
+  "name": "za3bot-library",
+  "version": "2.0.0",
+  "description": "Za3bot Library - Xbox-style 3D Coverflow library for the PDF files in the current folder, with a two-page flip reader, zoom, bookmarks, notes and page thumbnails.",
+  "keywords": [
+    "pdf",
+    "pdf-viewer",
+    "pdf-reader",
+    "coverflow",
+    "flipbook",
+    "bookshelf",
+    "ebook",
+    "library",
+    "page-flip",
+    "pdfjs",
+    "swiper",
+    "express",
+    "self-hosted",
+    "gamepad"
+  ],
+  "license": "MIT",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.65",
+    "express": "^4.21.2",
+    "page-flip": "^2.0.7",
+    "pdfjs-dist": "^4.10.38",
+    "swiper": "^11.1.15"
+  }
+}

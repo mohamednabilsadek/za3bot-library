@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Za3bot Library</title>
+<link rel="stylesheet" href="/vendor/swiper/swiper-bundle.min.css">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --panel: #12161b;
+    --line: #1f262e;
+    --text: #e8edf2;
+    --muted: #7b8794;
+    --neon: #2bff88;
+    --neon-2: #19c1ff;
+    --amber: #ffc83d;
+    --glow: 0 0 0 2px var(--neon), 0 0 28px 4px rgba(43, 255, 136, .45), 0 30px 60px rgba(0, 0, 0, .7);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background:
+      radial-gradient(900px 500px at 50% 8%, rgba(43, 255, 136, .08), transparent 60%),
+      radial-gradient(700px 500px at 90% 100%, rgba(25, 193, 255, .07), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+  body::before { /* faint grid */
+    content: ""; position: fixed; inset: 0; pointer-events: none;
+    background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+  }
+  button { font-family: inherit; }
+
+  /* ---------- header ---------- */
+  header {
+    position: relative; z-index: 5;
+    display: flex; align-items: center; gap: 16px;
+    padding: 18px 32px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; letter-spacing: .14em; font-size: 14px; }
+  .brand i {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #7dffb8, var(--neon) 45%, #0d7a42);
+    box-shadow: 0 0 16px rgba(43, 255, 136, .6);
+  }
+  .spacer { flex: 1; }
+  .search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 999px; padding: 8px 16px; min-width: 260px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .search:focus-within { border-color: var(--neon); box-shadow: 0 0 0 3px rgba(43, 255, 136, .15); }
+  .search input {
+    flex: 1; background: none; border: 0; outline: 0; color: var(--text);
+    font-size: 14px; user-select: text; min-width: 0;
+  }
+  .search kbd { color: var(--muted); border: 1px solid var(--line); border-radius: 5px; padding: 0 6px; font-size: 11px; }
+  .icon-btn {
+    background: var(--panel); border: 1px solid var(--line); color: var(--text);
+    width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 16px;
+    display: grid; place-items: center; transition: .2s; flex: none; padding: 0;
+  }
+  .icon-btn:hover { border-color: var(--neon); box-shadow: 0 0 14px rgba(43, 255, 136, .35); }
+  .icon-btn.off { opacity: .45; }
+  .icon-btn.on { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 12px rgba(43, 255, 136, .35); }
+  .icon-btn.amber.on { border-color: var(--amber); color: var(--amber); box-shadow: 0 0 12px rgba(255, 200, 61, .35); }
+
+  /* ---------- shelves (one coverflow per folder) ---------- */
+  main { position: relative; z-index: 2; height: calc(100% - 74px - 54px); display: flex; flex-direction: column; }
+  #shelves { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #2a343e transparent; }
+  #shelves.single { display: flex; flex-direction: column; justify-content: center; }
+  #shelves.multi { padding-bottom: 50px; }
+  .shelf-block { position: relative; }
+  .shelf-block:not(.focused) .swiper { opacity: .5; transition: opacity .3s; }
+  .shelf-block .swiper { transition: opacity .3s; }
+  #shelves.single .shelf-head { display: none; }
+  .shelf-head {
+    display: flex; align-items: center; gap: 10px; padding: 16px 36px 0; cursor: pointer; user-select: none;
+  }
+  .shelf-head .chev { color: var(--muted); font-size: 12px; transition: transform .2s; width: 14px; }
+  .shelf-block.collapsed .chev { transform: rotate(-90deg); }
+  .shelf-head .fname { font-weight: 700; font-size: 15px; letter-spacing: .05em; transition: color .2s, text-shadow .2s; }
+  .shelf-head .fcount { color: var(--muted); font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; }
+  .shelf-head .fline { flex: 1; height: 1px; background: linear-gradient(90deg, var(--line), transparent); }
+  .shelf-block.focused .shelf-head .fname { color: var(--neon); text-shadow: 0 0 14px rgba(43, 255, 136, .45); }
+  .shelf-block.focused .shelf-head .chev { color: var(--neon); }
+  .shelf-block.collapsed .swiper { display: none; }
+  .shelf-block.collapsed { padding-bottom: 8px; }
+  .swiper.row { width: 100%; padding: 30px 0 80px; overflow: visible; }
+  .swiper.row .swiper-wrapper { align-items: center; }
+  .swiper-slide { width: 240px; height: 340px; }
+  #shelves.multi .swiper-slide { width: 170px; height: 240px; }
+  #shelves.multi .swiper.row { padding: 24px 0 64px; }
+  .cover {
+    position: relative; width: 100%; height: 100%;
+    border-radius: 6px; overflow: hidden; background: #1a1f26;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, .55);
+    transition: transform .35s cubic-bezier(.2, .8, .2, 1), box-shadow .35s;
+    -webkit-box-reflect: below 6px linear-gradient(transparent 68%, rgba(255, 255, 255, .16));
+    cursor: pointer;
+  }
+  .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; background: #fff; }
+  .cover::after { /* glossy edge */
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(115deg, rgba(255,255,255,.14), transparent 28%, transparent 70%, rgba(0,0,0,.25));
+  }
+  .shelf-block.focused .swiper-slide-active .cover { transform: scale(1.14); box-shadow: var(--glow); }
+  .placeholder {
+    position: absolute; inset: 0; z-index: 1; display: flex; align-items: flex-end;
+    padding: 18px; font-weight: 700; font-size: 18px; line-height: 1.25; word-break: break-word;
+  }
+  #shelves.multi .placeholder { font-size: 15px; padding: 14px; }
+  .badges { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; pointer-events: none; }
+  .badge {
+    background: rgba(8, 10, 13, .82); border: 1px solid rgba(255, 255, 255, .18); color: var(--text);
+    border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 600; backdrop-filter: blur(4px);
+  }
+  .badge.bm { border-color: var(--amber); color: var(--amber); }
+
+  .info {
+    text-align: center; min-height: 78px; padding: 14px 24px 0; margin-top: -18px; position: relative; z-index: 3;
+    background: linear-gradient(to bottom, rgba(10, 12, 15, 0), #0a0c0f 22px); /* solid under the text, fades into the shelves above */
+  }
+  #title { font-size: 22px; font-weight: 600; text-shadow: 0 0 18px rgba(43, 255, 136, .35); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #meta { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  #meta b { color: var(--amber); font-weight: 600; }
+  #empty { display: none; text-align: center; color: var(--muted); font-size: 16px; line-height: 1.8; }
+  #empty b { color: var(--neon); }
+
+  footer {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 5; height: 54px;
+    display: flex; justify-content: center; align-items: center; gap: 26px;
+    color: var(--muted); font-size: 13px; border-top: 1px solid var(--line);
+    background: linear-gradient(transparent, rgba(0,0,0,.5));
+  }
+  footer span { display: flex; align-items: center; gap: 8px; }
+  footer kbd, .pad {
+    display: inline-grid; place-items: center; min-width: 26px; height: 24px; padding: 0 7px;
+    border-radius: 6px; border: 1px solid #2c3640; background: #151a20; color: var(--text); font-size: 12px; font-family: inherit;
+  }
+  .pad { border-radius: 50%; min-width: 24px; padding: 0; }
+  .pad.a { color: #4cd964; } .pad.b { color: #ff5a5a; }
+
+  #toast {
+    position: fixed; top: 76px; right: 28px; z-index: 300; padding: 10px 16px; border-radius: 10px;
+    background: var(--panel); border: 1px solid var(--neon); color: var(--text); font-size: 13px;
+    box-shadow: 0 0 24px rgba(43, 255, 136, .25);
+    opacity: 0; transform: translateY(-8px); transition: .3s; pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: none; }
+
+  /* ---------- reader ---------- */
+  #reader {
+    position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column;
+    background: radial-gradient(1200px 700px at 50% 40%, #1b212a, #07090b 70%);
+    opacity: 0; visibility: hidden; transition: opacity .35s, visibility .35s;
+  }
+  #reader.open { opacity: 1; visibility: visible; }
+  .bar { display: flex; align-items: center; gap: 10px; padding: 10px 18px; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,.04); }
+  .bar h2 { flex: 1; min-width: 120px; margin: 0; font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar .pg { color: var(--muted); font-size: 13px; min-width: 84px; text-align: center; }
+  .bar input[type=number] {
+    width: 64px; background: var(--panel); border: 1px solid var(--line); color: var(--text);
+    border-radius: 8px; padding: 7px 8px; font-size: 13px; outline: 0; user-select: text;
+  }
+  .bar input[type=number]:focus { border-color: var(--neon); }
+  .zoomgrp { display: flex; align-items: center; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
+  .zoomgrp .icon-btn { width: 32px; height: 32px; border: 0; background: transparent; font-size: 18px; }
+  .zoomgrp .icon-btn:hover { background: rgba(255,255,255,.06); }
+  .zoomgrp .icon-btn.on { background: rgba(43, 255, 136, .12); }
+  #z-val { width: auto; min-width: 54px; border-radius: 999px; font-size: 13px; font-variant-numeric: tabular-nums; }
+
+  .rbody { flex: 1; min-height: 0; display: flex; position: relative; }
+  .drawer {
+    width: 236px; flex: none; display: none; flex-direction: column; min-height: 0;
+    background: rgba(11, 14, 18, .94); z-index: 6;
+  }
+  .drawer.open { display: flex; }
+  #thumbs-panel { border-right: 1px solid var(--line); }
+  #notes-panel { width: 330px; border-left: 1px solid var(--line); }
+  .dh {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 12px 14px; font-weight: 700; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+  }
+  .dh .x { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 6px; }
+  .dh .x:hover { color: var(--text); background: rgba(255,255,255,.06); }
+
+  #thumbs { overflow: auto; padding: 4px 10px 14px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-content: start; flex: 1; }
+  .thumb {
+    position: relative; cursor: pointer; border-radius: 7px; padding: 5px; background: #141a20;
+    border: 1px solid transparent; transition: border-color .15s, box-shadow .15s, transform .15s;
+  }
+  .thumb:hover { transform: translateY(-2px); border-color: #2c3640; }
+  .thumb .ti { aspect-ratio: var(--ratio, .7); background: #fff; border-radius: 3px; overflow: hidden; display: grid; place-items: center; color: #c4c4c4; font-size: 11px; }
+  .thumb .ti img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
+  .thumb .tn { text-align: center; font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .thumb.cur { border-color: var(--neon); box-shadow: 0 0 12px rgba(43, 255, 136, .35); }
+  .thumb.cur .tn { color: var(--neon); }
+  .thumb .tb { position: absolute; top: 9px; left: 9px; right: 9px; display: flex; justify-content: space-between; pointer-events: none; font-size: 12px; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
+
+  #stage { flex: 1; min-width: 0; position: relative; }
+  #scroller { position: absolute; inset: 0; overflow: auto; display: flex; scrollbar-color: #2a343e transparent; }
+  #scroller.pan { cursor: grab; }
+  #scroller.pan.dragging { cursor: grabbing; }
+  #book-wrap { margin: auto; padding: 18px; flex: none; filter: drop-shadow(0 30px 40px rgba(0,0,0,.7)); transition: transform .45s cubic-bezier(.2,.8,.2,1); }
+  #book-wrap.big { filter: none; }
+  .page { background: #fff; overflow: hidden; }
+  .page .sheet { width: 100%; height: 100%; display: grid; place-items: center; background: #fff; color: #bbb; font-size: 13px; }
+  .page .sheet img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
+  .page.blank .sheet { background: #f4f2ee; }
+  #loader {
+    position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px;
+    background: rgba(7, 9, 11, .6); transition: opacity .3s; z-index: 4;
+  }
+  #loader.hide { opacity: 0; pointer-events: none; }
+  .spin { width: 38px; height: 38px; border-radius: 50%; border: 3px solid #27303a; border-top-color: var(--neon); animation: spin 1s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .nav-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+    width: 48px; height: 48px; font-size: 22px; opacity: .85;
+  }
+  #prev { left: 14px; } #next { right: 22px; }
+  #bm-chip {
+    position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 3; display: none;
+    background: rgba(12, 15, 19, .92); border: 1px solid var(--amber); color: var(--amber);
+    border-radius: 999px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+    box-shadow: 0 0 18px rgba(255, 200, 61, .25);
+  }
+  #bm-chip.show { display: block; }
+  #bm-chip:hover { background: rgba(255, 200, 61, .12); }
+
+  /* notes */
+  #note-editors { padding: 0 12px; display: flex; flex-direction: column; gap: 12px; }
+  .note-card { background: #0d1116; border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+  .note-card:focus-within { border-color: var(--neon); box-shadow: 0 0 0 3px rgba(43, 255, 136, .12); }
+  .note-card .nh { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .note-card .nh b { color: var(--text); font-size: 13px; }
+  .note-card .ns.ok { color: var(--neon); } .note-card .ns.bad { color: #ff8a8a; }
+  .note-card textarea {
+    width: 100%; min-height: 110px; resize: vertical; background: transparent; border: 0; outline: 0;
+    color: var(--text); font: 14px/1.6 "Segoe UI", system-ui, sans-serif; user-select: text;
+  }
+  .note-card textarea::placeholder { color: #55606c; }
+  #note-list { overflow: auto; padding: 0 12px 14px; flex: 1; min-height: 0; }
+  .note-item {
+    display: flex; align-items: flex-start; gap: 8px; padding: 9px 10px; border-radius: 8px; cursor: pointer;
+    border: 1px solid transparent; margin-bottom: 6px; background: #0f141a;
+  }
+  .note-item:hover { border-color: #2c3640; }
+  .note-item .np { flex: none; color: var(--neon); font-size: 12px; font-weight: 700; min-width: 34px; }
+  .note-item .nt { flex: 1; min-width: 0; font-size: 13px; color: #c8d0d8; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+  .note-item .nd { flex: none; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 13px; padding: 0 4px; border-radius: 5px; }
+  .note-item .nd:hover { color: #ff8a8a; }
+  .note-empty { color: var(--muted); font-size: 13px; padding: 4px 4px 10px; }
+
+  @media (max-width: 760px) {
+    header { padding: 12px 14px; flex-wrap: wrap; }
+    .search { min-width: 0; flex: 1; }
+    footer { font-size: 11px; gap: 12px; }
+    .swiper-slide { width: 190px; height: 270px; }
+    #shelves.multi .swiper-slide { width: 140px; height: 198px; }
+    .shelf-head { padding: 14px 16px 0; }
+    .drawer { position: absolute; top: 0; bottom: 0; }
+    #thumbs-panel { left: 0; } #notes-panel { right: 0; width: min(330px, 92vw); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><i></i> ZA3BOT LIBRARY</div>
+  <div class="spacer"></div>
+  <label class="search">
+    <span>🔍</span>
+    <input id="search" type="text" placeholder="Search books…" autocomplete="off" dir="auto">
+    <kbd>/</kbd>
+  </label>
+  <button class="icon-btn" id="refresh" title="Rescan folder">↻</button>
+  <button class="icon-btn" id="sound" title="Page-turn sound">🔊</button>
+</header>
+
+<main>
+  <div id="shelves"></div>
+  <div class="info">
+    <div id="title" dir="auto"></div>
+    <div id="meta"></div>
+    <div id="empty">No PDF files found in this folder.<br>Drop some <b>.pdf</b> files (or sub-folders of PDFs) next to <b>server.js</b> and press ↻</div>
+  </div>
+</main>
+
+<footer>
+  <span><kbd>←</kbd><kbd>→</kbd> Browse</span>
+  <span><kbd>↑</kbd><kbd>↓</kbd> Shelves</span>
+  <span><kbd>Enter</kbd><span class="pad a">A</span> Open</span>
+  <span><kbd>Esc</kbd><span class="pad b">B</span> Close</span>
+  <span><kbd>C</kbd> Fold shelf</span>
+  <span><kbd>/</kbd> Search</span>
+</footer>
+
+<div id="toast"></div>
+
+<section id="reader" aria-hidden="true">
+  <div class="bar">
+    <button class="icon-btn" id="r-thumbs" title="Page previews (T)">▦</button>
+    <h2 id="r-title" dir="auto"></h2>
+    <div class="zoomgrp">
+      <button class="icon-btn" id="z-out" title="Zoom out (−)">−</button>
+      <button class="icon-btn" id="z-val" title="Reset zoom (0)">100%</button>
+      <button class="icon-btn" id="z-in" title="Zoom in (+)">+</button>
+      <button class="icon-btn" id="z-pan" title="Hand tool: drag to move the zoomed page (H)">✋</button>
+    </div>
+    <button class="icon-btn amber" id="r-bm" title="Bookmark this page (B)">🔖</button>
+    <button class="icon-btn" id="r-notes" title="Notes (N)">📝</button>
+    <input id="jump" type="number" min="1" placeholder="Page" title="Jump to page (Enter)">
+    <span class="pg" id="r-page"></span>
+    <button class="icon-btn" id="r-sound" title="Page-turn sound (M)">🔊</button>
+    <button class="icon-btn" id="r-close" title="Close (Esc)">✕</button>
+  </div>
+  <div class="rbody">
+    <aside class="drawer" id="thumbs-panel">
+      <div class="dh"><span>Pages</span><button class="x" id="thumbs-x" title="Close">✕</button></div>
+      <div id="thumbs"></div>
+    </aside>
+    <div id="stage">
+      <div id="scroller"><div id="book-wrap"></div></div>
+      <button class="icon-btn nav-arrow" id="prev" title="Previous">‹</button>
+      <button class="icon-btn nav-arrow" id="next" title="Next">›</button>
+      <button id="bm-chip" type="button"></button>
+      <div id="loader"><div><div class="spin"></div><span id="loader-text">Loading…</span></div></div>
+    </div>
+    <aside class="drawer" id="notes-panel">
+      <div class="dh"><span>Notes</span><button class="x" id="notes-x" title="Close">✕</button></div>
+      <div id="note-editors"></div>
+      <div class="dh"><span>All notes <span id="note-count"></span></span></div>
+      <div id="note-list"></div>
+    </aside>
+  </div>
+</section>
+
+<script src="/vendor/swiper/swiper-bundle.min.js"></script>
+<script src="/vendor/page-flip/dist/js/page-flip.browser.js"></script>
+<script type="module">
+import * as pdfjsLib from '/vendor/pdfjs/build/pdf.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/build/pdf.worker.min.mjs';
+
+/* ============================================================== *
+ *  Helpers
+ * ============================================================== */
+const $ = (s) => document.querySelector(s);
+const searchEl = $('#search'), titleEl = $('#title'), metaEl = $('#meta'), emptyEl = $('#empty');
+const readerEl = $('#reader'), loaderEl = $('#loader'), jumpEl = $('#jump');
+const scrollerEl = $('#scroller'), stageEl = $('#stage'), wrapEl = $('#book-wrap');
+const thumbsPanel = $('#thumbs-panel'), notesPanel = $('#notes-panel'), thumbsEl = $('#thumbs');
+
+const store = {
+  get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+const fmtSize = (b) => b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+const hue = (s) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
+
+const api = {
+  async state(file) {
+    const r = await fetch('/api/state/' + encodeURIComponent(file), { cache: 'no-store' });
+    if (!r.ok) throw new Error('state ' + r.status);
+    return r.json();
+  },
+  async put(url, body, keepalive) {
+    const r = await fetch(url, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body), keepalive: !!keepalive,
+    });
+    if (!r.ok) throw new Error('save ' + r.status);
+    return r.json();
+  },
+};
+const stateUrl = (file, tail) => '/api/state/' + encodeURIComponent(file) + tail;
+
+/* ============================================================== *
+ *  Sound (synthesised with Web Audio - no audio files needed)
+ * ============================================================== */
+let soundOn = store.get('sound', 'on') !== 'off';
+let actx = null;
+function audio() {
+  actx ||= new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function updateSoundButtons() {
+  for (const b of [$('#sound'), $('#r-sound')]) {
+    b.textContent = soundOn ? '🔊' : '🔇';
+    b.classList.toggle('off', !soundOn);
+  }
+}
+function toggleSound() { soundOn = !soundOn; store.set('sound', soundOn ? 'on' : 'off'); updateSoundButtons(); if (soundOn) playFlip(); }
+
+/** One paper "swish": noise with a crackly envelope, swept band-pass filter. */
+function paperBurst(ctx, when, dur, gainPeak, f0, f1) {
+  const sr = ctx.sampleRate, len = Math.floor(sr * dur);
+  const buf = ctx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) {
+    const t = i / sr;
+    const env = t < 0.05 ? t / 0.05 : Math.exp(-(t - 0.05) * (5 / dur) * 1.4);
+    const crackle = 0.55 + Math.random() * 0.9;
+    d[i] = (Math.random() * 2 - 1) * env * crackle;
+  }
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.7;
+  bp.frequency.setValueAtTime(f0, when); bp.frequency.exponentialRampToValueAtTime(f1, when + dur);
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 350;
+  const g = ctx.createGain(); g.gain.value = gainPeak;
+  src.connect(bp).connect(hp).connect(g).connect(ctx.destination);
+  src.start(when);
+}
+function playFlip() {
+  if (!soundOn) return;
+  try {
+    const ctx = audio(), t = ctx.currentTime;
+    paperBurst(ctx, t, 0.5, 0.55, 1400, 5200);        // main swish
+    paperBurst(ctx, t + 0.34, 0.14, 0.22, 900, 2400); // page settling
+  } catch {}
+}
+function blip() { // soft UI tick when moving along the shelf
+  if (!soundOn) return;
+  try {
+    const ctx = audio(), t = ctx.currentTime;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(620, t); o.frequency.exponentialRampToValueAtTime(420, t + 0.06);
+    g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+    o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + 0.09);
+  } catch {}
+}
+
+/* ============================================================== *
+ *  Library: one coverflow shelf per folder
+ * ============================================================== */
+let books = [], view = [], shelves = [], focus = 0, readerOpen = false, shelvesReady = false;
+const badgeEls = new Map(); // file -> .badges element
+const shelvesEl = $('#shelves');
+
+let collapsed = new Set();
+try { collapsed = new Set(JSON.parse(store.get('collapsed', '[]'))); } catch {}
+const saveCollapsed = () => store.set('collapsed', JSON.stringify([...collapsed]));
+
+const folderTitle = (f) => (f ? f.split('/').join('  ›  ') : 'Main shelf');
+
+async function loadBooks(keepId) {
+  try {
+    const r = await fetch('/api/books', { cache: 'no-store' });
+    books = await r.json();
+  } catch { books = []; toast('Could not reach the server'); }
+  applyFilter(keepId);
+}
+
+function applyFilter(keepId) {
+  const q = searchEl.value.trim().toLowerCase();
+  view = books.filter((b) => b.title.toLowerCase().includes(q) || (b.folder || '').toLowerCase().includes(q));
+  renderShelves(keepId);
+}
+
+function paintBadges(b) {
+  const el = badgeEls.get(b.file);
+  if (!el) return;
+  el.innerHTML = '';
+  if (b.bookmark) { const s = document.createElement('span'); s.className = 'badge bm'; s.textContent = '🔖 p.' + b.bookmark; el.append(s); }
+  if (b.noteCount) { const s = document.createElement('span'); s.className = 'badge'; s.textContent = '📝 ' + b.noteCount; el.append(s); }
+}
+
+function makeCover(b) {
+  const cover = document.createElement('div');
+  cover.className = 'cover';
+
+  // The image sits under the placeholder; the browser loads it only when it is near the screen.
+  const img = document.createElement('img');
+  img.alt = b.title; img.draggable = false; img.decoding = 'async'; img.loading = 'lazy';
+  img.onload = () => { ph.remove(); };
+  img.src = b.coverUrl; // if rendering fails the gradient placeholder stays
+  cover.append(img);
+
+  const ph = document.createElement('div');
+  ph.className = 'placeholder';
+  ph.dir = 'auto';
+  const h = hue(b.title);
+  ph.style.background = `linear-gradient(160deg, hsl(${h} 55% 28%), hsl(${(h + 40) % 360} 60% 12%))`;
+  ph.textContent = b.title;
+  cover.append(ph);
+
+  const badges = document.createElement('div');
+  badges.className = 'badges';
+  badgeEls.set(b.file, badges);
+  cover.append(badges);
+  paintBadges(b);
+  return cover;
+}
+
+function renderShelves(keepId) {
+  for (const sh of shelves) if (sh.swiper) sh.swiper.destroy(true, true);
+  shelves = []; shelvesReady = false;
+  shelvesEl.innerHTML = ''; badgeEls.clear();
+
+  const has = view.length > 0;
+  emptyEl.style.display = has ? 'none' : 'block';
+  titleEl.style.display = metaEl.style.display = has ? '' : 'none';
+  if (!has) return;
+
+  // group by folder (the server already sorts: main folder first, then folders A-Z)
+  const groups = new Map();
+  for (const b of view) {
+    const f = b.folder || '';
+    if (!groups.has(f)) groups.set(f, []);
+    groups.get(f).push(b);
+  }
+  const single = groups.size === 1 && groups.has('');
+  shelvesEl.className = single ? 'single' : 'multi';
+
+  let focusAt = 0;
+  [...groups].forEach(([folder, list], idx) => {
+    const sh = { folder, books: list, swiper: null, start: 0, single };
+    const k = list.findIndex((b) => b.id === keepId);
+    if (k >= 0) { sh.start = k; focusAt = idx; }
+
+    const block = document.createElement('section');
+    block.className = 'shelf-block' + (!single && collapsed.has(folder) ? ' collapsed' : '');
+    block.innerHTML = '<div class="shelf-head"><span class="chev">▼</span><span class="fname" dir="auto"></span><span class="fcount"></span><span class="fline"></span></div>';
+    block.querySelector('.fname').textContent = '📁 ' + folderTitle(folder);
+    block.querySelector('.fcount').textContent = list.length + (list.length === 1 ? ' book' : ' books');
+    block.querySelector('.shelf-head').addEventListener('click', () => { focusShelf(idx, { scroll: false }); toggleCollapse(idx); });
+
+    const sw = document.createElement('div');
+    sw.className = 'swiper row';
+    const wr = document.createElement('div');
+    wr.className = 'swiper-wrapper';
+    list.forEach((b, i) => {
+      const slide = document.createElement('div');
+      slide.className = 'swiper-slide';
+      slide.append(makeCover(b));
+      // runs before Swiper's slideToClickedSlide, so activeIndex is still the old one
+      slide.addEventListener('click', () => {
+        focusShelf(idx, { scroll: false });
+        if (sh.swiper && sh.swiper.activeIndex === i) openBook(b);
+      });
+      wr.append(slide);
+    });
+    sw.append(wr); block.append(sw);
+    shelvesEl.append(block);
+    sh.el = block; sh.swEl = sw;
+    shelves.push(sh);
+  });
+
+  for (const sh of shelves) if (!sh.el.classList.contains('collapsed')) initSwiper(sh);
+  shelvesReady = true;
+  focusShelf(focusAt, { scroll: !!keepId });
+}
+
+function initSwiper(sh) {
+  sh.swiper = new Swiper(sh.swEl, {
+    effect: 'coverflow',
+    grabCursor: true,
+    centeredSlides: true,
+    slidesPerView: 'auto',
+    slideToClickedSlide: true,
+    initialSlide: sh.start,
+    speed: 450,
+    // several shelves: the vertical wheel scrolls between shelves; one shelf: wheel browses it
+    mousewheel: sh.single ? { thresholdDelta: 24, forceToAxis: false } : { thresholdDelta: 24, forceToAxis: true },
+    coverflowEffect: { rotate: 40, stretch: -10, depth: 220, modifier: 1, slideShadows: false },
+    on: {
+      slideChange(s) {
+        sh.start = s.activeIndex;
+        if (shelves[focus] === sh) { updateInfo(); if (shelvesReady) blip(); }
+      },
+    },
+  });
+}
+
+function currentBook() {
+  const sh = shelves[focus];
+  if (!sh) return null;
+  return sh.books[sh.swiper ? sh.swiper.activeIndex : sh.start] || null;
+}
+
+function focusShelf(i, opts = {}) {
+  if (i < 0 || i >= shelves.length) return;
+  focus = i;
+  shelves.forEach((s, k) => s.el.classList.toggle('focused', k === i));
+  updateInfo();
+  if (opts.scroll !== false && !shelves[i].single) shelves[i].el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+function moveShelf(dir) { focusShelf(clamp(focus + dir, 0, shelves.length - 1)); }
+
+function toggleCollapse(i) {
+  const sh = shelves[i];
+  if (!sh || sh.single) return;
+  const c = !sh.el.classList.contains('collapsed');
+  sh.el.classList.toggle('collapsed', c);
+  if (c) collapsed.add(sh.folder); else collapsed.delete(sh.folder);
+  saveCollapsed();
+  if (!c) {
+    if (!sh.swiper) initSwiper(sh); else { sh.swiper.update(); sh.swiper.slideTo(sh.start, 0); }
+  }
+}
+
+function updateInfo() {
+  const b = currentBook(); const sh = shelves[focus];
+  if (!b || !sh) return;
+  const i = sh.books.indexOf(b);
+  titleEl.textContent = b.title;
+  metaEl.textContent = (sh.single ? '' : `📁 ${folderTitle(sh.folder)}  ·  `) + `${i + 1} / ${sh.books.length}  ·  ${fmtSize(b.size)}`;
+  if (b.bookmark) { const s = document.createElement('b'); s.textContent = `  ·  🔖 page ${b.bookmark}`; metaEl.append(s); }
+  if (b.noteCount) metaEl.append(document.createTextNode(`  ·  📝 ${b.noteCount} note${b.noteCount > 1 ? 's' : ''}`));
+}
+
+function refreshBook(b) {
+  paintBadges(b);
+  if (currentBook() === b) updateInfo();
+}
+
+/* ============================================================== *
+ *  Reader (PDF.js + StPageFlip)
+ * ============================================================== */
+const PAD = 18;                       // space around the book inside the scroller
+const ZOOMS = [0.5, 0.65, 0.8, 1, 1.25, 1.5, 2, 2.5, 3, 4];
+const MAX_SIDE_PX = 3000;             // never render a page bigger than this (memory)
+
+const R = {
+  book: null, doc: null, flip: null, n: 0, total: 0, gen: 0, idx: 0,
+  ratio: 0.7, fitW: 0, fitH: 0, pw: 0, ph: 0, k: 1, zoom: 1,
+  els: [], cache: new Map(), inflight: new Set(), queue: Promise.resolve(),
+  bookmark: null, notes: {}, pan: false,
+};
+
+function setLoader(show, text) {
+  loaderEl.classList.toggle('hide', !show);
+  if (text) $('#loader-text').textContent = text;
+}
+
+/** Size of one page at 100% zoom: the whole two-page spread fits the visible area. */
+function fitSize() {
+  const w = Math.max(200, stageEl.clientWidth - PAD * 2);
+  const h = Math.max(200, stageEl.clientHeight - PAD * 2);
+  let ph = h, pw = ph * R.ratio;
+  if (pw * 2 > w) { pw = w / 2; ph = pw / R.ratio; }
+  R.fitW = pw; R.fitH = ph;
+}
+function applyZoomSize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  R.pw = Math.max(60, Math.floor(R.fitW * R.zoom));
+  R.ph = Math.max(80, Math.floor(R.fitH * R.zoom));
+  R.k = Math.min(1, MAX_SIDE_PX / (Math.max(R.pw, R.ph) * dpr)); // render-size cap
+  R.dpr = dpr;
+}
+
+// 0-based page index -> index of the page on the left of the spread that shows it
+const spreadStart = (p) => (p <= 0 ? 0 : p % 2 === 1 ? p : p - 1);
+// 0-based indexes of the real pages visible for a given spread
+function visiblePages(idx) {
+  const v = idx === 0 || idx >= R.total - 1 ? [idx] : [idx, idx + 1];
+  return v.filter((p) => p >= 0 && p < R.n);
+}
+
+async function openBook(book) {
+  if (readerOpen || !book) return;
+  readerOpen = true;
+  const gen = ++R.gen;
+  R.book = book;
+  R.cache = new Map(); R.inflight = new Set(); R.queue = Promise.resolve();
+  R.bookmark = null; R.notes = {}; R.zoom = 1; R.idx = 0; editorKey = null;
+  $('#r-title').textContent = book.title;
+  $('#r-page').textContent = '';
+  jumpEl.value = '';
+  readerEl.classList.add('open'); readerEl.setAttribute('aria-hidden', 'false');
+  setLoader(true, 'Opening…');
+  setPan(false);
+  syncDrawers();
+
+  try {
+    const [doc, st] = await Promise.all([
+      pdfjsLib.getDocument({
+        url: book.pdfUrl,
+        cMapUrl: '/vendor/pdfjs/cmaps/', cMapPacked: true,
+        standardFontDataUrl: '/vendor/pdfjs/standard_fonts/',
+      }).promise,
+      api.state(book.file).catch(() => ({ bookmark: null, notes: {} })),
+    ]);
+    if (gen !== R.gen) { doc.destroy(); return; }
+
+    R.doc = doc; R.n = doc.numPages; R.total = R.n % 2 === 0 ? R.n : R.n + 1;
+    R.bookmark = Number.isInteger(st.bookmark) ? st.bookmark : null;
+    R.notes = st.notes && typeof st.notes === 'object' ? { ...st.notes } : {};
+    jumpEl.max = R.n;
+
+    const p1 = await doc.getPage(1);
+    const v1 = p1.getViewport({ scale: 1 });
+    R.ratio = v1.width / v1.height;
+
+    await frame(); // let the layout settle so the stage has its final size
+    if (gen !== R.gen) return;
+    fitSize(); applyZoomSize();
+    updateZoomUI();
+
+    let start = 0;
+    if (R.bookmark && R.bookmark <= R.n) start = spreadStart(R.bookmark - 1);
+    buildFlip(start, true);
+    buildThumbs();
+    buildNotesList();
+    updateBookmarkUI();
+
+    await renderPage(start, gen);
+    if (gen === R.gen) setLoader(false);
+    if (start > 0) toast(`Continuing from your bookmark (page ${R.bookmark})`);
+  } catch (err) {
+    console.error(err);
+    toast('Could not open this PDF');
+    closeBook();
+  }
+}
+
+/** (Re)creates the page-flip book at the current size. Keeps the reading position. */
+function buildFlip(startIdx, firstBuild) {
+  if (R.flip) { try { R.flip.destroy(); } catch {} R.flip = null; }
+
+  // keep only pages near the reader in memory
+  for (const k of [...R.cache.keys()]) if (Math.abs(k - startIdx) > 14) R.cache.delete(k);
+
+  R.els = [];
+  for (let i = 0; i < R.total; i++) {
+    const el = document.createElement('div');
+    el.className = 'page' + (i >= R.n ? ' blank' : '');
+    if (i === 0 || i === R.total - 1) el.dataset.density = 'hard';
+    el.innerHTML = `<div class="sheet">${i < R.n ? i + 1 : ''}</div>`;
+    R.els.push(el);
+    if (R.cache.has(i)) setPageImage(i);
+  }
+
+  wrapEl.style.transition = 'none';
+  wrapEl.classList.toggle('big', R.zoom > 1.5);
+  wrapEl.innerHTML = '<div id="book"></div>'; // StPageFlip removes its host on destroy()
+  const bookEl = $('#book');
+  bookEl.style.width = R.pw * 2 + 'px';       // the block is always a full two-page spread
+  bookEl.style.height = R.ph + 'px';
+
+  const flip = new St.PageFlip(bookEl, {
+    width: R.pw, height: R.ph, size: 'fixed',
+    showCover: true, drawShadow: true, maxShadowOpacity: 0.55,
+    flippingTime: 850,
+    usePortrait: false,                       // never collapse to a single page
+    mobileScrollSupport: false,
+    useMouseEvents: true, swipeDistance: 30, startZIndex: 5,
+    startPage: startIdx,
+  });
+  flip.loadFromHTML(R.els);
+  R.flip = flip;
+
+  const gen = R.gen;
+  flip.on('flip', (e) => onSpread(e.data, gen));
+  flip.on('changeState', (e) => { if (e.data === 'flipping') playFlip(); });
+
+  onSpread(flip.getCurrentPageIndex(), gen);
+  requestAnimationFrame(() => { wrapEl.style.transition = ''; });
+}
+
+function onSpread(idx, gen) {
+  if (gen !== R.gen) return;
+  flushNoteSaves();
+  R.idx = idx;
+  const vis = visiblePages(idx);
+  const a = (vis[0] ?? idx) + 1, b = vis.length > 1 ? vis[1] + 1 : null;
+  $('#r-page').textContent = b ? `${a}–${b} / ${R.n}` : `${a} / ${R.n}`;
+  shiftBook(idx);
+  renderAround(idx, gen);
+  updateBookmarkUI();
+  renderNoteEditors();
+  markThumbs();
+}
+
+/** The cover / back cover are single pages: slide the book so they sit in the middle. */
+function shiftBook(idx) {
+  let dx = 0;
+  const fits = R.pw * 2 + PAD * 2 <= stageEl.clientWidth + 1;
+  if (fits) dx = idx === 0 ? -R.pw / 2 : idx >= R.total - 1 ? R.pw / 2 : 0;
+  wrapEl.style.transform = dx ? `translateX(${dx}px)` : '';
+}
+
+/* ----- page images --------------------------------------------------- */
+
+function setPageImage(i) {
+  const c = R.cache.get(i), el = R.els[i];
+  if (!c || !el) return;
+  const img = new Image();
+  img.draggable = false;
+  img.src = c.url;
+  el.querySelector('.sheet').replaceChildren(img);
+}
+
+function renderAround(idx, gen) {
+  const order = [idx, idx + 1, idx - 1, idx + 2, idx + 3, idx - 2, idx + 4, idx + 5];
+  for (const p of order) renderPage(p, gen);
+}
+
+function renderPage(i, gen) {
+  if (i < 0 || i >= R.n) return Promise.resolve();
+  const need = Math.ceil(R.pw * R.dpr * R.k);
+  const have = R.cache.get(i);
+  if (have && have.w >= need * 0.92) return Promise.resolve();
+  if (R.inflight.has(i)) return Promise.resolve();
+  R.inflight.add(i);
+  const job = R.queue.then(async () => {
+    if (gen !== R.gen || !R.doc) return;
+    const page = await R.doc.getPage(i + 1);
+    const v0 = page.getViewport({ scale: 1 });
+    const scale = Math.min(R.pw / v0.width, R.ph / v0.height) * R.dpr * R.k;
+    const vp = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
+    await page.render({ canvasContext: canvas.getContext('2d'), canvas, viewport: vp }).promise;
+    page.cleanup();
+    if (gen !== R.gen) return;
+    R.cache.set(i, { url: canvas.toDataURL('image/jpeg', 0.9), w: canvas.width });
+    setPageImage(i);
+  }).catch(() => {}).finally(() => { R.inflight.delete(i); });
+  R.queue = job;
+  return job;
+}
+
+/* ----- zoom ---------------------------------------------------------- */
+
+let relayoutTimer = null;
+function relayoutSoon(delay = 110) {
+  clearTimeout(relayoutTimer);
+  relayoutTimer = setTimeout(relayout, delay);
+}
+function relayout() {
+  if (!readerOpen || !R.flip) return;
+  // remember which part of the page is in the middle of the view
+  const sw = scrollerEl.scrollWidth, sh = scrollerEl.scrollHeight;
+  const cx = sw ? (scrollerEl.scrollLeft + scrollerEl.clientWidth / 2) / sw : 0.5;
+  const cy = sh ? (scrollerEl.scrollTop + scrollerEl.clientHeight / 2) / sh : 0.5;
+  fitSize(); applyZoomSize();
+  buildFlip(R.idx);
+  requestAnimationFrame(() => {
+    scrollerEl.scrollLeft = cx * scrollerEl.scrollWidth - scrollerEl.clientWidth / 2;
+    scrollerEl.scrollTop = cy * scrollerEl.scrollHeight - scrollerEl.clientHeight / 2;
+  });
+}
+function updateZoomUI() {
+  $('#z-val').textContent = Math.round(R.zoom * 100) + '%';
+}
+function setZoom(z) {
+  z = clamp(z, ZOOMS[0], ZOOMS[ZOOMS.length - 1]);
+  if (Math.abs(z - R.zoom) < 0.001) return;
+  R.zoom = z;
+  updateZoomUI();
+  relayoutSoon();
+}
+function stepZoom(dir) {
+  const cur = R.zoom;
+  if (dir > 0) setZoom(ZOOMS.find((z) => z > cur + 0.001) ?? cur);
+  else setZoom([...ZOOMS].reverse().find((z) => z < cur - 0.001) ?? cur);
+}
+
+/* hand tool: drag the zoomed page around (middle mouse button works too) */
+function setPan(on) {
+  R.pan = on;
+  scrollerEl.classList.toggle('pan', on);
+  $('#z-pan').classList.toggle('on', on);
+}
+let panDrag = null;
+scrollerEl.addEventListener('mousedown', (e) => {
+  if (!(R.pan && e.button === 0) && e.button !== 1) return;
+  e.preventDefault(); e.stopPropagation();   // keep StPageFlip from starting a page turn
+  panDrag = { x: e.clientX, y: e.clientY, l: scrollerEl.scrollLeft, t: scrollerEl.scrollTop };
+  scrollerEl.classList.add('dragging');
+}, true);
+window.addEventListener('mousemove', (e) => {
+  if (!panDrag) return;
+  scrollerEl.scrollLeft = panDrag.l - (e.clientX - panDrag.x);
+  scrollerEl.scrollTop = panDrag.t - (e.clientY - panDrag.y);
+});
+window.addEventListener('mouseup', () => { panDrag = null; scrollerEl.classList.remove('dragging'); });
+
+let wheelAt = 0;
+scrollerEl.addEventListener('wheel', (e) => {
+  if (!e.ctrlKey) return;                    // plain wheel scrolls the zoomed page
+  e.preventDefault();
+  const now = performance.now();
+  if (now - wheelAt < 90) return;
+  wheelAt = now;
+  stepZoom(e.deltaY < 0 ? 1 : -1);
+}, { passive: false });
+
+window.addEventListener('resize', () => { if (readerOpen) relayoutSoon(220); });
+
+/* ----- jump ---------------------------------------------------------- */
+
+function jumpTo(p) { // p: 0-based page
+  if (!R.flip) return;
+  p = clamp(p, 0, R.n - 1);
+  if (spreadStart(p) === R.idx) return;
+  renderAround(spreadStart(p), R.gen);
+  R.flip.flip(p);
+}
+
+/* ============================================================== *
+ *  Page previews (thumbnails)
+ * ============================================================== */
+const T = { gen: 0, io: null, queue: Promise.resolve(), done: new Set(), els: [] };
+
+function buildThumbs() {
+  const gen = ++T.gen;
+  T.done = new Set(); T.els = []; T.queue = Promise.resolve();
+  if (T.io) T.io.disconnect();
+  thumbsEl.innerHTML = '';
+  thumbsEl.style.setProperty('--ratio', String(R.ratio));
+  T.io = new IntersectionObserver((entries) => {
+    for (const en of entries) if (en.isIntersecting) { T.io.unobserve(en.target); queueThumb(+en.target.dataset.i, gen); }
+  }, { root: thumbsEl, rootMargin: '400px 0px' });
+
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < R.n; i++) {
+    const d = document.createElement('div');
+    d.className = 'thumb'; d.dataset.i = i;
+    d.innerHTML = `<div class="ti">${i + 1}</div><div class="tb"><span class="tbm"></span><span class="tnn"></span></div><div class="tn">${i + 1}</div>`;
+    d.addEventListener('click', () => jumpTo(i));
+    frag.append(d); T.els.push(d);
+    T.io.observe(d);
+  }
+  thumbsEl.append(frag);
+  markThumbs();
+}
+
+function queueThumb(i, gen) {
+  if (T.done.has(i)) return;
+  T.done.add(i);
+  T.queue = T.queue.then(async () => {
+    if (gen !== T.gen || !R.doc) return;
+    await R.queue;                                   // main pages first
+    const page = await R.doc.getPage(i + 1);
+    const v0 = page.getViewport({ scale: 1 });
+    const vp = page.getViewport({ scale: (190 * Math.min(window.devicePixelRatio || 1, 2)) / v0.width });
+    const c = document.createElement('canvas');
+    c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext: ctx, canvas: c, viewport: vp }).promise;
+    page.cleanup();
+    if (gen !== T.gen) return;
+    const img = new Image(); img.draggable = false; img.src = c.toDataURL('image/jpeg', 0.7);
+    T.els[i].querySelector('.ti').replaceChildren(img);
+  }).catch(() => { T.done.delete(i); });
+}
+
+function markThumbs() {
+  if (!T.els.length) return;
+  const vis = new Set(visiblePages(R.idx));
+  let first = null;
+  T.els.forEach((el, i) => {
+    const on = vis.has(i);
+    el.classList.toggle('cur', on);
+    if (on && first === null) first = el;
+    el.querySelector('.tbm').textContent = R.bookmark === i + 1 ? '🔖' : '';
+    el.querySelector('.tnn').textContent = (R.notes[i + 1] || '').trim() ? '📝' : '';
+  });
+  if (first && thumbsPanel.classList.contains('open')) first.scrollIntoView({ block: 'nearest' });
+}
+
+/* ============================================================== *
+ *  Bookmark (resume point)
+ * ============================================================== */
+function updateBookmarkUI() {
+  const vis = visiblePages(R.idx);
+  const here = !!R.bookmark && vis.includes(R.bookmark - 1);
+  $('#r-bm').classList.toggle('on', here);
+  $('#r-bm').title = here ? 'Remove bookmark (B)' : 'Bookmark this page (B)';
+  const chip = $('#bm-chip');
+  const show = !!R.bookmark && R.bookmark <= R.n && !here;
+  chip.classList.toggle('show', show);
+  if (show) chip.textContent = `🔖 Bookmark: page ${R.bookmark}  —  go there`;
+  markThumbs();
+}
+
+async function toggleBookmark() {
+  if (!R.book || !R.flip) return;
+  const vis = visiblePages(R.idx);
+  const here = !!R.bookmark && vis.includes(R.bookmark - 1);
+  const page = here ? null : (vis[0] ?? R.idx) + 1;
+  const prev = R.bookmark;
+  R.bookmark = page;
+  R.book.bookmark = page;
+  updateBookmarkUI(); refreshBook(R.book);
+  toast(page ? `Bookmark set at page ${page}` : 'Bookmark removed');
+  try { await api.put(stateUrl(R.book.file, '/bookmark'), { page }); }
+  catch { R.bookmark = prev; R.book.bookmark = prev; updateBookmarkUI(); refreshBook(R.book); toast('Could not save the bookmark'); }
+}
+$('#bm-chip').addEventListener('click', () => { if (R.bookmark) jumpTo(R.bookmark - 1); });
+
+/* ============================================================== *
+ *  Notes (per page, saved on the server)
+ * ============================================================== */
+const pendingSaves = new Map(); // page(1-based) -> { timer, file }
+const noteStatus = new Map();   // page(1-based) -> status element
+
+function noteCount() { return Object.values(R.notes).filter((t) => String(t).trim()).length; }
+
+let editorKey = null; // which pages the editors currently show
+function renderNoteEditors(force) {
+  const box = $('#note-editors');
+  const vis = visiblePages(R.idx);
+  const key = vis.join(',');
+  // A re-layout (zoom, resize, drawer toggle) keeps the same pages: don't rebuild, or typing loses focus.
+  if (!force && key === editorKey && box.children.length) return;
+  editorKey = key;
+  box.innerHTML = ''; noteStatus.clear();
+  for (const p0 of vis) {
+    const page = p0 + 1;
+    const card = document.createElement('div');
+    card.className = 'note-card';
+    card.innerHTML = '<div class="nh"><b></b><span class="ns"></span></div>';
+    card.querySelector('b').textContent = `Page ${page}`;
+    const ta = document.createElement('textarea');
+    ta.dir = 'auto'; ta.spellcheck = false;
+    ta.placeholder = 'Write a note for this page…';
+    ta.value = R.notes[page] || '';
+    ta.addEventListener('input', () => onNoteInput(page, ta.value));
+    ta.addEventListener('blur', () => flushNoteSaves());
+    card.append(ta);
+    box.append(card);
+    noteStatus.set(page, card.querySelector('.ns'));
+  }
+  const has = vis.some((p) => (R.notes[p + 1] || '').trim());
+  $('#r-notes').classList.toggle('on', has);
+}
+
+function setNoteStatus(page, text, cls) {
+  const el = noteStatus.get(page);
+  if (!el) return;
+  el.textContent = text; el.className = 'ns ' + (cls || '');
+}
+
+function onNoteInput(page, text) {
+  if (text.trim()) R.notes[page] = text; else delete R.notes[page];
+  R.book.noteCount = noteCount();
+  refreshBook(R.book);
+  buildNotesList(); markThumbs();
+  $('#r-notes').classList.toggle('on', visiblePages(R.idx).some((p) => (R.notes[p + 1] || '').trim()));
+  setNoteStatus(page, 'Saving…', '');
+  const prev = pendingSaves.get(page);
+  if (prev) clearTimeout(prev.timer);
+  const file = R.book.file;
+  pendingSaves.set(page, { file, timer: setTimeout(() => sendNote(page, file), 700) });
+}
+
+async function sendNote(page, file, keepalive) {
+  const p = pendingSaves.get(page);
+  if (p) { clearTimeout(p.timer); pendingSaves.delete(page); }
+  const text = R.notes[page] ?? '';
+  try {
+    await api.put(stateUrl(file, '/notes/' + page), { text }, keepalive);
+    setNoteStatus(page, 'Saved ✓', 'ok');
+  } catch {
+    setNoteStatus(page, 'Not saved — retry by editing', 'bad');
+  }
+}
+
+function flushNoteSaves(keepalive) {
+  for (const [page, p] of [...pendingSaves]) sendNote(page, p.file, keepalive);
+}
+
+function buildNotesList() {
+  const list = $('#note-list');
+  list.innerHTML = '';
+  const pages = Object.keys(R.notes).map(Number).filter((p) => (R.notes[p] || '').trim()).sort((a, b) => a - b);
+  $('#note-count').textContent = pages.length ? `(${pages.length})` : '';
+  if (!pages.length) {
+    const e = document.createElement('div'); e.className = 'note-empty'; e.textContent = 'No notes in this book yet.';
+    list.append(e); return;
+  }
+  for (const page of pages) {
+    const it = document.createElement('div');
+    it.className = 'note-item';
+    const np = document.createElement('span'); np.className = 'np'; np.textContent = 'p.' + page;
+    const nt = document.createElement('span'); nt.className = 'nt'; nt.dir = 'auto'; nt.textContent = R.notes[page];
+    const nd = document.createElement('button'); nd.className = 'nd'; nd.title = 'Delete note'; nd.textContent = '✕';
+    nd.addEventListener('click', (ev) => { ev.stopPropagation(); deleteNote(page); });
+    it.append(np, nt, nd);
+    it.addEventListener('click', () => jumpTo(page - 1));
+    list.append(it);
+  }
+}
+
+async function deleteNote(page) {
+  if (!confirm(`Delete the note on page ${page}?`)) return;
+  const p = pendingSaves.get(page); if (p) { clearTimeout(p.timer); pendingSaves.delete(page); }
+  delete R.notes[page];
+  R.book.noteCount = noteCount(); refreshBook(R.book);
+  buildNotesList(); renderNoteEditors(true); markThumbs();
+  try { await api.put(stateUrl(R.book.file, '/notes/' + page), { text: '' }); } catch { toast('Could not delete the note'); }
+}
+
+/* ============================================================== *
+ *  Drawers + toolbar
+ * ============================================================== */
+let thumbsOpen = store.get('thumbs', window.innerWidth >= 1000 ? 'on' : 'off') === 'on';
+let notesOpen = false;
+function syncDrawers() {
+  thumbsPanel.classList.toggle('open', thumbsOpen);
+  notesPanel.classList.toggle('open', notesOpen);
+  $('#r-thumbs').classList.toggle('on', thumbsOpen);
+  $('#r-notes').classList.toggle('open-state', notesOpen);
+}
+function toggleThumbs(force) {
+  thumbsOpen = force ?? !thumbsOpen; store.set('thumbs', thumbsOpen ? 'on' : 'off');
+  syncDrawers(); relayoutSoon(0);
+  if (thumbsOpen) requestAnimationFrame(() => markThumbs());
+}
+function toggleNotes(force) {
+  notesOpen = force ?? !notesOpen;
+  syncDrawers(); relayoutSoon(0);
+  if (notesOpen) {
+    renderNoteEditors();
+    setTimeout(() => { const ta = $('#note-editors textarea'); if (ta) ta.focus(); }, 60);
+  } else flushNoteSaves();
+}
+
+function closeBook() {
+  if (!readerOpen) return;
+  flushNoteSaves(true);
+  readerOpen = false;
+  R.gen++; T.gen++;
+  clearTimeout(relayoutTimer);
+  if (T.io) { T.io.disconnect(); T.io = null; }
+  try { R.flip && R.flip.destroy(); } catch {}
+  try { R.doc && R.doc.destroy(); } catch {}
+  R.flip = null; R.doc = null; R.n = 0; R.total = 0; R.els = []; R.cache = new Map(); R.book = null;
+  wrapEl.innerHTML = ''; wrapEl.style.transform = '';
+  thumbsEl.innerHTML = ''; T.els = [];
+  $('#note-editors').innerHTML = ''; $('#note-list').innerHTML = '';
+  notesOpen = false; syncDrawers();
+  readerEl.classList.remove('open'); readerEl.setAttribute('aria-hidden', 'true');
+  jumpEl.blur();
+}
+
+const flipNext = () => R.flip && R.flip.flipNext('bottom');
+const flipPrev = () => R.flip && R.flip.flipPrev('bottom');
+
+$('#next').addEventListener('click', flipNext);
+$('#prev').addEventListener('click', flipPrev);
+$('#r-close').addEventListener('click', closeBook);
+$('#r-sound').addEventListener('click', toggleSound);
+$('#sound').addEventListener('click', toggleSound);
+$('#r-thumbs').addEventListener('click', () => toggleThumbs());
+$('#thumbs-x').addEventListener('click', () => toggleThumbs(false));
+$('#r-notes').addEventListener('click', () => toggleNotes());
+$('#notes-x').addEventListener('click', () => toggleNotes(false));
+$('#r-bm').addEventListener('click', toggleBookmark);
+$('#z-in').addEventListener('click', () => stepZoom(1));
+$('#z-out').addEventListener('click', () => stepZoom(-1));
+$('#z-val').addEventListener('click', () => setZoom(1));
+$('#z-pan').addEventListener('click', () => setPan(!R.pan));
+$('#refresh').addEventListener('click', () => loadBooks(currentBook()?.id).then(() => toast('Library refreshed')));
+jumpEl.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  const n = clamp(parseInt(jumpEl.value, 10) || 1, 1, R.n);
+  jumpTo(n - 1);
+  jumpEl.value = '';
+  jumpEl.blur();
+});
+window.addEventListener('beforeunload', () => flushNoteSaves(true));
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushNoteSaves(true); });
+
+/* ============================================================== *
+ *  Input: keyboard + gamepad
+ * ============================================================== */
+function navigate(dir) { // dir: -1 / +1
+  if (readerOpen) return dir > 0 ? flipNext() : flipPrev();
+  const sw = shelves[focus] && shelves[focus].swiper;
+  if (!sw) return;
+  dir > 0 ? sw.slideNext() : sw.slidePrev();
+}
+function activate() {
+  if (readerOpen) return;
+  const sh = shelves[focus];
+  if (!sh) return;
+  if (sh.el.classList.contains('collapsed')) { toggleCollapse(focus); return; } // Enter on a folded shelf opens it
+  const b = currentBook();
+  if (b) openBook(b);
+}
+function back() { if (readerOpen) closeBook(); }
+
+window.addEventListener('keydown', (e) => {
+  const t = e.target;
+  if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) {
+    if (e.key === 'Escape') { t.blur(); e.preventDefault(); }
+    else if (t === searchEl && (e.key === 'Enter' || e.key === 'ArrowDown')) { searchEl.blur(); e.preventDefault(); }
+    return;
+  }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  switch (e.key) {
+    case 'ArrowRight': navigate(1); e.preventDefault(); break;
+    case 'ArrowLeft': navigate(-1); e.preventDefault(); break;
+    case 'Enter': activate(); e.preventDefault(); break;
+    case 'Escape': back(); break;
+    case 'ArrowDown': if (!readerOpen) { moveShelf(1); e.preventDefault(); } break;
+    case 'ArrowUp': if (!readerOpen) { moveShelf(-1); e.preventDefault(); } break;
+    case 'c': case 'C': if (!readerOpen) toggleCollapse(focus); break;
+    case 'Home': if (readerOpen) jumpTo(0); else shelves[focus]?.swiper?.slideTo(0); break;
+    case 'End': if (readerOpen) jumpTo(R.n - 1); else shelves[focus]?.swiper?.slideTo(shelves[focus].books.length - 1); break;
+    case '/': if (!readerOpen) { searchEl.focus(); e.preventDefault(); } break;
+    case 'm': case 'M': toggleSound(); break;
+    case '+': case '=': if (readerOpen) { stepZoom(1); e.preventDefault(); } break;
+    case '-': case '_': if (readerOpen) { stepZoom(-1); e.preventDefault(); } break;
+    case '0': if (readerOpen) setZoom(1); break;
+    case 'b': case 'B': if (readerOpen) toggleBookmark(); break;
+    case 't': case 'T': if (readerOpen) toggleThumbs(); break;
+    case 'n': case 'N': if (readerOpen) { toggleNotes(); e.preventDefault(); } break;
+    case 'h': case 'H': if (readerOpen) setPan(!R.pan); break;
+  }
+});
+
+searchEl.addEventListener('input', () => applyFilter(currentBook()?.id));
+
+// Gamepad: D-pad / left stick = move (up/down = shelves), A = open, B = close, LB/RB = flip page, X = bookmark, Y = previews
+let padLoop = false;
+const padLast = {};
+function pollPad() {
+  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  const now = performance.now();
+  const fire = (key, pressed, fn, repeat) => {
+    if (!pressed) { padLast[key] = 0; return; }
+    if (!padLast[key] || (repeat && now - padLast[key] > repeat)) {
+      fn();
+      padLast[key] = padLast[key] && repeat ? now : now + (repeat ? 180 : 0); // first repeat waits a bit longer
+    }
+  };
+  for (const p of pads) {
+    if (!p) continue;
+    const b = (i) => !!(p.buttons[i] && p.buttons[i].pressed);
+    const x = p.axes[0] || 0;
+    fire('l', b(14) || x < -0.6, () => navigate(-1), 230);
+    fire('r', b(15) || x > 0.6, () => navigate(1), 230);
+    const y = p.axes[1] || 0;
+    fire('u', b(12) || y < -0.6, () => !readerOpen && moveShelf(-1), 260);
+    fire('d', b(13) || y > 0.6, () => !readerOpen && moveShelf(1), 260);
+    fire('a', b(0), activate, 0);
+    fire('b', b(1), back, 0);
+    fire('x', b(2), () => readerOpen && toggleBookmark(), 0);
+    fire('y', b(3), () => readerOpen && toggleThumbs(), 0);
+    fire('lb', b(4), () => readerOpen && flipPrev(), 0);
+    fire('rb', b(5), () => readerOpen && flipNext(), 0);
+  }
+  requestAnimationFrame(pollPad);
+}
+window.addEventListener('gamepadconnected', () => {
+  toast('Controller connected');
+  if (!padLoop) { padLoop = true; requestAnimationFrame(pollPad); }
+});
+
+/* ============================================================== *
+ *  Boot
+ * ============================================================== */
+updateSoundButtons();
+syncDrawers();
+loadBooks();
+</script>
+</body>
+</html>
